@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.gox.nifi.processors.opcua;
+package org.gox.nifi.opcua.processors;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
