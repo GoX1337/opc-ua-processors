@@ -1,5 +1,7 @@
 package org.gox.nifi.opcua.processors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -23,8 +25,11 @@ import org.eclipse.milo.opcua.stack.core.UaException;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
 import org.eclipse.milo.opcua.stack.core.types.structured.ReferenceDescription;
+import org.gox.nifi.opcua.processors.model.OpcUaNode;
+import org.gox.nifi.opcua.processors.util.DateUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,6 +44,7 @@ import java.util.Set;
 public class GetOpcUaVariable extends AbstractProcessor {
 
     private OpcUaClient client;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     // 1) Propriétés classiques : URL du serveur
     public static final PropertyDescriptor OPC_UA_SERVER_URL = new PropertyDescriptor
@@ -94,6 +100,8 @@ public class GetOpcUaVariable extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
+        objectMapper.registerModule(new JavaTimeModule());
+
         List<PropertyDescriptor> descs = new ArrayList<>();
         descs.add(OPC_UA_SERVER_URL);
         descs.add(OPC_UA_BROWSING);
@@ -228,15 +236,25 @@ public class GetOpcUaVariable extends AbstractProcessor {
         // Ajouter éventuellement des attributs
         flowFile = session.putAttribute(flowFile, "opcua.nodeId", variableNodeId.toParseableString());
         flowFile = session.putAttribute(flowFile, "opcua.status", value.getStatusCode().toString());
+        flowFile = session.putAttribute(flowFile, "mime.type", "application/json");
 
         // Écrire la valeur dans le content
         Object val = value.getValue().getValue();
         String valStr = (val != null) ? val.toString() : "null";
-        flowFile = session.write(flowFile, out -> out.write(valStr.getBytes(StandardCharsets.UTF_8)));
+
+        OpcUaNode opcUaNode = new OpcUaNode(varNode.getNodeId().getIdentifier().toString(),
+                varNode.getBrowseName().getName(),
+                varNode.getDataType().getType().toString(),
+                valStr,
+                value.getSourceTime() != null ? DateUtils.convert(value.getSourceTime().getJavaDate()) : LocalDateTime.now());
+        getLogger().info("JSON OPC UA node", opcUaNode.toString());
+
+        String opcUaNodeJsonStr = objectMapper.writeValueAsString(opcUaNode);
+        flowFile = session.write(flowFile, out -> out.write(opcUaNodeJsonStr.getBytes(StandardCharsets.UTF_8)));
 
         // Transférer
         session.transfer(flowFile, REL_SUCCESS);
-        getLogger().info("Lu variable={} => {}", new Object[]{variableNodeId, valStr});
+        getLogger().info("Lu variable={} => {}", variableNodeId, valStr);
     }
 
     /**
