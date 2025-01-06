@@ -1,12 +1,12 @@
 package org.gox.nifi.opcua.processors.util;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 public class DateUtils {
 
-    public static LocalDateTime convert(Date date) {
-        return new Date(date.getTime()).toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    public static OffsetDateTime convert(Date date) {
+        return date.toInstant().atOffset(ZoneOffset.UTC);
     }
 }

@@ -3,6 +3,7 @@ package org.gox.nifi.opcua.processors.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class OpcUaNode {
 
@@ -11,10 +12,10 @@ public class OpcUaNode {
     private String dataType;
     private String value;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
-    private LocalDateTime timestamp;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+    private OffsetDateTime timestamp;
 
-    public OpcUaNode(String nodeId, String name, String dataType, String value, LocalDateTime timestamp) {
+    public OpcUaNode(String nodeId, String name, String dataType, String value, OffsetDateTime timestamp) {
         this.nodeId = nodeId;
         this.name = name;
         this.dataType = dataType;
@@ -54,11 +55,11 @@ public class OpcUaNode {
         this.value = value;
     }
 
-    public LocalDateTime getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 

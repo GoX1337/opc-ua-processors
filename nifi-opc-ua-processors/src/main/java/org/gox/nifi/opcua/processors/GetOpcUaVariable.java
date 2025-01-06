@@ -11,6 +11,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -30,6 +33,7 @@ import org.gox.nifi.opcua.processors.util.DateUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,6 +49,8 @@ public class GetOpcUaVariable extends AbstractProcessor {
 
     private OpcUaClient client;
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    public static final Validator NON_EMPTY_VALIDATOR = (subject, value, context) -> new ValidationResult.Builder().subject(subject).input(value).valid(true).build();
 
     // 1) Propriétés classiques : URL du serveur
     public static final PropertyDescriptor OPC_UA_SERVER_URL = new PropertyDescriptor
@@ -83,7 +89,7 @@ public class GetOpcUaVariable extends AbstractProcessor {
             .displayName("OPC UA NodeId List")
             .description("Liste de NodeIds à lire, séparés par des virgules (ex: ns=1;s=MyVar,ns=1;s=AnotherVar)")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator((subject, value, context) -> new ValidationResult.Builder().subject(subject).input(value).valid(true).build())
             .build();
 
     // 5) Relation de sortie
@@ -246,7 +252,7 @@ public class GetOpcUaVariable extends AbstractProcessor {
                 varNode.getBrowseName().getName(),
                 varNode.getDataType().getType().toString(),
                 valStr,
-                value.getSourceTime() != null ? DateUtils.convert(value.getSourceTime().getJavaDate()) : LocalDateTime.now());
+                value.getSourceTime() != null ? DateUtils.convert(value.getSourceTime().getJavaDate()) : OffsetDateTime.now());
         getLogger().info("JSON OPC UA node", opcUaNode.toString());
 
         String opcUaNodeJsonStr = objectMapper.writeValueAsString(opcUaNode);
